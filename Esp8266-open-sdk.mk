@@ -1,6 +1,5 @@
 ########################################################################
 
-ROOT       = /home/nando/tools/esp-open-sdk
 BUILD_BASE = build
 FW_BASE    = firmware
 
@@ -19,7 +18,7 @@ TARGET		= app
 
 # which modules (subdirectories) of the project to include in compiling
 MODULES      = driver user
-EXTRA_INCDIR = include $(ROOT)/include/
+EXTRA_INCDIR		= include $(ROOT)/include/
 
 # libraries used in this project, mainly provided by the SDK
 LIBS = c gcc hal phy net80211 lwip wpa upgrade ssl main pp
@@ -27,42 +26,42 @@ LIBS = c gcc hal phy net80211 lwip wpa upgrade ssl main pp
 # compiler flags using during compilation of source files
 # Pedantic style
 #CFLAGS       = -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH -pedantic -Wall -Wextra
-CFLAGS       = -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
-CXXFLAGS     = $(CFLAGS) -fno-rtti -fno-exceptions
-FLAGS_STD   = -std=gnu11
-CXXFLAGS_STD = -std=gnu++11
+CFLAGS				= -Os -g -O2 -Wpointer-arith -Wundef -Werror -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals  -D__ets__ -DICACHE_FLASH
+CXXFLAGS			= $(CFLAGS) -fno-rtti -fno-exceptions
+FLAGS_STD			= -std=gnu11
+CXXFLAGS_STD		= -std=gnu++11
 
 # linker flags used to generate the main object file
-LDFLAGS	= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
+LDFLAGS				= -nostdlib -Wl,--no-check-sections -u call_user_start -Wl,-static
 
 # linker script used for the above linkier step
-LD_SCRIPT	= eagle.app.v6.ld
+LD_SCRIPT			= eagle.app.v6.ld
 
 # various paths from the SDK used in this project
-SDK_LIBDIR	= lib
-SDK_LDDIR	= ld
-SDK_INCDIR	= include include/json
+SDK_LIBDIR			= lib
+SDK_LDDIR			= ld
+SDK_INCDIR			= include include/json
 
 # we create two different files for uploading into the flash
 # these are the names and options to generate them
-FW_FILE_1      = 0x00000
-FW_FILE_2      = 0x40000
+FW_FILE_1_ADDR		= 0x00000
+FW_FILE_2_ADDR		= 0x40000
 
 # select which tools to use as compiler, librarian and linker
-CC		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
-CXX		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-g++
-AR		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-ar
-LD		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
+CC			  		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
+CXX			  		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-g++
+AR			   		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-ar
+LD					:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
 
 ####
 #### no user configurable options below here
 ####
 
-SRC_DIR       := $(MODULES)
-BUILD_DIR     := $(addprefix $(BUILD_BASE)/,$(MODULES))
+SRC_DIR			:= $(MODULES)
+BUILD_DIR		:= $(addprefix $(BUILD_BASE)/,$(MODULES))
 
-SDK_LIBDIR    := $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
-SDK_INCDIR    := $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
+SDK_LIBDIR		:= $(addprefix $(SDK_BASE)/,$(SDK_LIBDIR))
+SDK_INCDIR		:= $(addprefix -I$(SDK_BASE)/,$(SDK_INCDIR))
 
 SRC           := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c*))
 C_OBJ         := $(patsubst %.c,%.o,$(SRC))
@@ -78,8 +77,8 @@ INCDIR        := $(addprefix -I,$(SRC_DIR))
 EXTRA_INCDIR  := $(addprefix -I,$(EXTRA_INCDIR))
 MODULE_INCDIR := $(addsuffix /include,$(INCDIR))
 
-FW_FILE_1     := $(addprefix $(FW_BASE)/,$(FW_FILE_1).bin)
-FW_FILE_2     := $(addprefix $(FW_BASE)/,$(FW_FILE_2).bin)
+FW_FILE_1     := $(addprefix $(FW_BASE)/,$(FW_FILE_1_ADDR).bin)
+FW_FILE_2     := $(addprefix $(FW_BASE)/,$(FW_FILE_2_ADDR).bin)
 
 V ?= $(VERBOSE)
 ifeq ("$(V)","1")
@@ -104,12 +103,11 @@ endef
 
 .PHONY: all checkdirs clean
 
-all: checkdirs $(TARGET_OUT) $(FW_FILE_1) 
+all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
 
-$(FW_FILE_1): $(TARGET_OUT)
-	$(vecho) "FW $@"
+$(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
+	$(vecho) "FW $(FW_BASE)/"
 	$(Q) $(ESPTOOL) elf2image $(TARGET_OUT) --output $(FW_BASE)/
-
 
 $(TARGET_OUT): $(APP_AR)
 	$(vecho) "LD $@"
@@ -124,22 +122,13 @@ checkdirs: $(BUILD_DIR) $(FW_BASE)
 $(BUILD_DIR):
 	$(Q) mkdir -p $@
 
-firmware:
+$(FW_BASE):
 	$(Q) mkdir -p $@
 
-
-flash: all
-	esptool.py write_flash 0 $(FW_FILE_1) 0x40000 $(FW_FILE_2)
+flash: $(FW_FILE_1) $(FW_FILE_2)
+	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
 clean:
-	$(Q) rm -f $(APP_AR)
-	$(Q) rm -f $(TARGET_OUT)
-	$(Q) rm -rf $(BUILD_DIR)
-	$(Q) rm -rf $(BUILD_BASE)
-
-
-	$(Q) rm -f $(FW_FILE_1)
-	$(Q) rm -f $(FW_FILE_2)
-	$(Q) rm -rf $(FW_BASE)
+	$(Q) rm -rf $(BUILD_BASE) $(FW_BASE)
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))

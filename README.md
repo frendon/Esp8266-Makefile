@@ -42,4 +42,5 @@ details).
 ## Credits
 
 * This makefile was derivate from the created by mamalala from [this post](http://www.esp8266.com/viewtopic.php?f=9&t=142#p716)
+  and others  zarya, Jeroen Domburg (Sprite_tm), Christian Klippel (mamalala),  Tommie Gannert (tommie)
 * It's not a derivative of this, but the Idea is from  [Arduino-Makefile](https://github.com/sudar/Arduino-Makefile)
