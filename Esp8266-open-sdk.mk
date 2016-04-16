@@ -4,20 +4,20 @@ BUILD_BASE = build
 FW_BASE    = firmware
 
 # Base directory for the compiler
-XTENSA_TOOLS_ROOT ?= $(ROOT)/xtensa-lx106-elf/bin
+XTENSA_TOOLS_ROOT 	?= $(ROOT)/xtensa-lx106-elf/bin
 
 # base directory of the ESP8266 SDK package, absolute
-SDK_BASE	?= $(ROOT)/sdk
+SDK_BASE			?= $(ROOT)/sdk
 
 #Esptool.py path and port
-ESPTOOL		?= $(ROOT)/esptool/esptool.py
-ESPPORT		?= /dev/ttyUSB0
+ESPTOOL				?= $(ROOT)/esptool/esptool.py
+ESPPORT				?= /dev/ttyUSB0
 
 # name for the target project
-TARGET		= app
+TARGET				= app
 
 # which modules (subdirectories) of the project to include in compiling
-MODULES      = driver user
+MODULES				?= driver user
 EXTRA_INCDIR		= include $(ROOT)/include/
 
 # libraries used in this project, mainly provided by the SDK
@@ -52,6 +52,9 @@ CC			  		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
 CXX			  		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-g++
 AR			   		:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-ar
 LD					:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-gcc
+OBJCOPY 			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-objcopy
+OBJDUMP 			:= $(XTENSA_TOOLS_ROOT)/xtensa-lx106-elf-objdump
+
 
 ####
 #### no user configurable options below here
@@ -102,16 +105,28 @@ $1/%.o: %.cpp
 endef
 
 .PHONY: all checkdirs clean
+.PHONY: all checkdirs clean flash flashinit rebuild
 
-all: checkdirs $(TARGET_OUT) $(FW_FILE_1) $(FW_FILE_2)
+
+all: checkdirs $(TARGET_OUT) 
 
 $(FW_BASE)/%.bin: $(TARGET_OUT) | $(FW_BASE)
 	$(vecho) "FW $(FW_BASE)/"
-	$(Q) $(ESPTOOL) elf2image $(TARGET_OUT) --output $(FW_BASE)/
 
 $(TARGET_OUT): $(APP_AR)
 	$(vecho) "LD $@"
 	$(Q) $(LD) -L$(SDK_LIBDIR) $(LD_SCRIPT) $(LDFLAGS) -Wl,--start-group $(LIBS) $(APP_AR) -Wl,--end-group -o $@
+#	$(vecho) "------------------------------------------------------------------------------"
+#	$(vecho) "Section info:"
+#	$(Q) $(OBJDUMP) -h -j .data -j .rodata -j .bss -j .text -j .irom0.text $@
+#$(vecho) "------------------------------------------------------------------------------"
+	$(Q) $(ESPTOOL) elf2image $(TARGET_OUT) --output $(FW_BASE)/
+	$(vecho) "------------------------------------------------------------------------------"
+	$(vecho) "Generate 0x00000.bin and 0x40000.bin successully in folder $(FW_BASE)."
+	$(vecho) "0x00000.bin-------->0x00000"
+	$(vecho) "0x40000.bin-------->0x40000"
+	$(vecho) "Done"
+
 
 $(APP_AR): $(OBJ)
 	$(vecho) "AR $@"
@@ -125,10 +140,18 @@ $(BUILD_DIR):
 $(FW_BASE):
 	$(Q) mkdir -p $@
 
-flash: $(FW_FILE_1) $(FW_FILE_2)
+
+flash: all
 	$(ESPTOOL) --port $(ESPPORT) write_flash $(FW_FILE_1_ADDR) $(FW_FILE_1) $(FW_FILE_2_ADDR) $(FW_FILE_2)
 
+
+rebuild: clean all
+
 clean:
-	$(Q) rm -rf $(BUILD_BASE) $(FW_BASE)
+	$(Q) rm -f $(APP_AR)
+	$(Q) rm -f $(TARGET_OUT)
+	$(Q) rm -rf $(BUILD_DIR)
+	$(Q) rm -rf $(BUILD_BASE)
+	$(Q) rm -rf $(FW_BASE)
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call compile-objects,$(bdir))))
