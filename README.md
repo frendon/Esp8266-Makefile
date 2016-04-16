@@ -9,7 +9,7 @@ The arduino-ide is buggy and slow  to upload the firmware to the device.
 ## Versioning
 
 The current version of the makefile is 0.0.1.
-You can find the full history in the CHANGELOG.md file
+You can find the full history in the [CHANGELOG.md](CHANGELOG.md) file
 This project adheres to Semantic Versioning 2.0
 
 ## Todo
